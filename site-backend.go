@@ -5,7 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/go-co-op/gocron"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -34,15 +36,18 @@ func main() {
 		"the directory to serve static files",
 	)
 
+	cron := gocron.NewScheduler(time.UTC)
+	cron.Every(1).Day().At("00:00").Do(UpdateGithub)
+
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		// serves static files from the provided public dir (if exists)
 		e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS(publicDirFlag), false))
-
+		UpdateGithub()
+		cron.StartAsync()
 		return nil
 	})
 
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
 	}
-
 }

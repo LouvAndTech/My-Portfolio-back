@@ -1,9 +1,9 @@
 Build:
 	@echo "Building binaries for the host system..."
-	@go build -o ./site-backend.go -v
+	@go build -o ./output/backend-exe ./*.go
 	@echo "Done."
 
 Serve:
 	@echo "Starting the server..."
-	@go run ./site-backend.go serve
+	@go run ./*.go serve --http 0.0.0.0:8090
 	@echo "Done."
