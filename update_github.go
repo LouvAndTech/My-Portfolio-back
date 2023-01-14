@@ -93,6 +93,11 @@ func UpdateGithub() {
 
 		//for each repo in the response, create a new repo object
 
+		//Avoid readme Repo (it is not a real repo)
+		if repo.(map[string]interface{})["node"].(map[string]interface{})["name"].(string) == repo.(map[string]interface{})["node"].(map[string]interface{})["owner"].(map[string]interface{})["login"].(string) {
+			continue
+		}
+
 		//Handle empty descriptions assuming that every other field is not empty based on github requierements
 		if (repo.(map[string]interface{})["node"].(map[string]interface{})["description"]) == nil {
 			repo.(map[string]interface{})["node"].(map[string]interface{})["description"] = ""
