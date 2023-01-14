@@ -7,7 +7,10 @@ import (
 
 	"github.com/machinebox/graphql"
 	"github.com/pocketbase/dbx"
+	"github.com/pocketbase/pocketbase/forms"
 	"github.com/pocketbase/pocketbase/models"
+	"github.com/pocketbase/pocketbase/models/schema"
+	pbtypes "github.com/pocketbase/pocketbase/tools/types"
 )
 
 type GithubRepo struct {
@@ -76,7 +79,7 @@ func UpdateGithub() {
 	}
     `)
 	//Set the header
-	graphqlRequest.Header.Set("Authorization", "bearer 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")
+	graphqlRequest.Header.Set("Authorization", "bearer "+github_token)
 	//Request header
 	graphqlRequest.Header.Set("Content-Type", "application/json")
 	var graphqlResponse interface{}
@@ -116,9 +119,22 @@ func UpdateGithub() {
 				log.Println("panic occurred when trying to add repo to the db:", err)
 			}
 		}()
+
+		//fetch collection
 		collection, err := app.Dao().FindCollectionByNameOrId("github_projects")
 		if err != nil {
-			panic(err)
+			//if collection does not exist
+			if collection == nil {
+				fmt.Println("Collection does not exist")
+				//Create a new collection
+				crreateCollection()
+				collection, err = app.Dao().FindCollectionByNameOrId("github_projects")
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				panic(err)
+			}
 		}
 
 		record, _ := app.Dao().FindRecordsByExpr(collection.Id, dbx.HashExp{"repo_name": newRepo.Name})
@@ -150,6 +166,93 @@ func UpdateGithub() {
 			panic(err)
 		}
 
+	}
+}
+
+func crreateCollection() {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("panic occurred when trying to create the collection:", err)
+		}
+	}()
+
+	collection := &models.Collection{}
+
+	form := forms.NewCollectionUpsert(app, collection)
+	form.Name = "github_projects"
+	form.Type = models.CollectionTypeBase
+	form.ListRule = pbtypes.Pointer("")
+	form.ViewRule = pbtypes.Pointer("")
+	form.CreateRule = nil
+	form.UpdateRule = nil
+	form.DeleteRule = nil
+	form.Schema.AddField(&schema.SchemaField{
+		Name:     "username",
+		Type:     schema.FieldTypeText,
+		Required: true,
+		Unique:   false,
+		Options:  &schema.TextOptions{},
+	})
+	form.Schema.AddField(&schema.SchemaField{
+		Name:     "repo_name",
+		Type:     schema.FieldTypeText,
+		Required: true,
+		Unique:   false,
+		Options:  &schema.TextOptions{},
+	})
+	form.Schema.AddField(&schema.SchemaField{
+		Name:     "image_link",
+		Type:     schema.FieldTypeText,
+		Required: false,
+		Unique:   false,
+		Options:  &schema.TextOptions{},
+	})
+	form.Schema.AddField(&schema.SchemaField{
+		Name:     "tags",
+		Type:     schema.FieldTypeJson,
+		Required: false,
+		Unique:   false,
+		Options:  &schema.JsonOptions{},
+	})
+	form.Schema.AddField(&schema.SchemaField{
+		Name:     "link_to_repo",
+		Type:     schema.FieldTypeText,
+		Required: true,
+		Unique:   false,
+		Options:  &schema.TextOptions{},
+	})
+	form.Schema.AddField(&schema.SchemaField{
+		Name:     "description",
+		Type:     schema.FieldTypeText,
+		Required: true,
+		Unique:   false,
+		Options:  &schema.TextOptions{},
+	})
+	form.Schema.AddField(&schema.SchemaField{
+		Name:     "stars",
+		Type:     schema.FieldTypeNumber,
+		Required: false,
+		Unique:   false,
+		Options:  &schema.NumberOptions{},
+	})
+	form.Schema.AddField(&schema.SchemaField{
+		Name:     "fork",
+		Type:     schema.FieldTypeNumber,
+		Required: false,
+		Unique:   false,
+		Options:  &schema.NumberOptions{},
+	})
+	form.Schema.AddField(&schema.SchemaField{
+		Name:     "contributor",
+		Type:     schema.FieldTypeNumber,
+		Required: false,
+		Unique:   false,
+		Options:  &schema.NumberOptions{},
+	})
+
+	// validate and submit (internally it calls app.Dao().SaveCollection(collection) in a transaction)
+	if err := form.Submit(); err != nil {
+		panic(err)
 	}
 }
 

@@ -1,3 +1,4 @@
 /output
 /pb_data
 *.db
+credential.go
