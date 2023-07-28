@@ -1,5 +1,6 @@
 /output
 /pb_data
+/pb_public
 *.db
 credential.go
 .DS_Store
